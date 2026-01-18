@@ -464,6 +464,7 @@ classdef IES_TM30 < handle
                 opts.FigureNumber (1,1) double = 1
                 opts.Disclaimer (1,1) logical = true
                 opts.DisclaimerTime (1,1) logical = true
+                opts.Visible (1,1) logical = true
             end
             if isempty(obj.s_)
                 error('IES_TM30.ColorVectorGraphic: no data, use SetSpectrum first');
@@ -497,7 +498,7 @@ classdef IES_TM30 < handle
                 - obj.Jab_binned_s_ref_.b_prime) ./ den; % (61)
 
             % prepare the figure
-            [ax, markerAngles, hires_angles] = PrepareFigure(opts.FigureNumber);
+            [ax, markerAngles, hires_angles] = PrepareFigure(opts.FigureNumber, opts.Visible);
             xt = rv.x_test;
             yt = rv.y_test;
             % smooth, take center of three repeated intervals. 
@@ -559,9 +560,13 @@ classdef IES_TM30 < handle
                     / 255;
             end
 
-            function [ax, markerAngles, hires_angles] = PrepareFigure(fignum)
+            function [ax, markerAngles, hires_angles] = PrepareFigure(fignum, visible)
                 background = imread(obj.IES_TM30_SubDirFileName('IES_TM30\CVG_Background.png'));
-                fh = figure(fignum);
+                if fignum < 1 || visible == false 
+                    fh = figure(Visible = false);
+                else
+                    fh = figure(fignum);
+                end
                 clf;
                 % flipud and YDir = normal to avoid reversed y axis
                 imshow(flipud(background),'XData',[-1.5,1.5],'YData',[-1.5,1.5]);
@@ -650,6 +655,7 @@ classdef IES_TM30 < handle
                 opts.xLabels (1,3) logical = [true, true, true] % false for clean x axis
                 opts.relBarWidth (1,3) double = [0.5, 0.5, 0.5] % 1 for full width
                 opts.mValues (1,3) logical = [true, true, true] % false to turn off m = .. above plot 
+                opts.Visible (1,1) logical = true
             end
             aref = obj.Jab_binned_s_ref_.a_prime; % 1x16
             bref = obj.Jab_binned_s_ref_.b_prime;
@@ -662,7 +668,7 @@ classdef IES_TM30 < handle
             
             % chroma shift figure
             [~, axc, barc] = PrepareFigure(opts.ChromaFigureNumber, rv.R_csh * 100, ...
-                [-40,40], opts.xLabels(1));
+                [-40,40], opts.xLabels(1), opts.Visible);
             for i = 1:16
                 yval = rv.R_csh(i) * 100;
                 ypos = yval + sign(yval) * 5;
@@ -694,7 +700,7 @@ classdef IES_TM30 < handle
 
             % hue shift figure
             [~, axh, barh] = PrepareFigure(opts.HueFigureNumber, rv.R_hsh, ...
-                [-0.5,0.5], opts.xLabels(2));
+                [-0.5,0.5], opts.xLabels(2), opts.Visible);
             for i = 1:16
                 yval = rv.R_hsh(i);
                 s = sprintf('%0.2f',yval);
@@ -736,7 +742,7 @@ classdef IES_TM30 < handle
             [~,~,Rf_hj] = obj.FidelityIndex();
             rv.Rf_hj = Rf_hj;
             [~, axf, barf] = PrepareFigure(opts.FidelityFigureNumber, Rf_hj, ...
-                [0,110], opts.xLabels(3));
+                [0,110], opts.xLabels(3), opts.Visible);
             for i = 1:16
                 yval = Rf_hj(i);
                 s = sprintf('%0.0f',yval);
@@ -771,8 +777,12 @@ classdef IES_TM30 < handle
             rv.axh = axh;
             rv.axf = axf;
             
-            function [fh, ax, b] = PrepareFigure(fignum, val, yrange, xLabels)
-                fh = figure(fignum);
+            function [fh, ax, b] = PrepareFigure(fignum, val, yrange, xLabels, visible)
+                if fignum < 1 || visible == false 
+                    fh = figure(Visible = false);
+                else
+                    fh = figure(fignum);
+                end
                 fh.Position(3:4) = [800,350];
                 clf; hold on;
                 ax = gca;
@@ -824,8 +834,13 @@ classdef IES_TM30 < handle
             arguments
                 obj                
                 opts.FigureNumber (1,1) double = 5;
+                opts.Visible (1,1) logical = true
             end
-            fh = figure(opts.FigureNumber);
+            if opts.FigureNumber< 1 || opts.Visible == false 
+                fh = figure(Visible = false);
+            else
+                fh = figure(opts.FigureNumber);
+            end
             clf; hold on;
             ax = gca;
             [~,Rf_i] = obj.FidelityIndex();
@@ -879,8 +894,13 @@ classdef IES_TM30 < handle
                 obj                
                 opts.FigureNumber (1,1) double = 6;
                 opts.RelativeScale (1,1) string = "flux" % or "peak"
+                opts.Visible (1,1) logical = true
             end
-            fh = figure(opts.FigureNumber);
+            if opts.FigureNumber < 1 || opts.Visible == false 
+                fh = figure(Visible = false);
+            else
+                fh = figure(opts.FigureNumber);
+            end
             clf; hold on;
             fh.Position(3:4) = [800,350];
             ax = gca;
@@ -949,18 +969,19 @@ classdef IES_TM30 < handle
                 opts.FidelityGraphicsName (1,1) string = "FidelityGraphics.png"
                 opts.IndividualFidelityGraphicsName (1,1) string = "IndividualFidelityGraphics.png"
                 opts.ReportFileName (1,1) string = "TM30Report.pdf"
+                opts.Visible (1,1) logical = false
             end
             fprintf("Creating graphics...\n");
-            spg = obj.SpectrumGraphics(RelativeScale=opts.SpectrumRelativeScale);
+            spg = obj.SpectrumGraphics(RelativeScale=opts.SpectrumRelativeScale, Visible = opts.Visible);
             exportgraphics(spg.ax,opts.SpectrumGraphicsName);
             Rch = obj.LocalChromaHueShiftFidelityGraphics(xLabels=[false, false, true],...
-                relBarWidth=0.9*[1,1,1], mValues=[true,false,false]);
+                relBarWidth=0.9*[1,1,1], mValues=[true,false,false], Visible = opts.Visible);
             exportgraphics(Rch.axc,opts.ChromaShiftGraphicsName);
             exportgraphics(Rch.axh,opts.HueShiftGraphicsName);
             exportgraphics(Rch.axf,opts.FidelityGraphicsName);
-            cvg = obj.ColorVectorGraphic(Disclaimer=false,DisclaimerTime=false);
+            cvg = obj.ColorVectorGraphic(Disclaimer=false,DisclaimerTime=false, Visible = opts.Visible);
             exportgraphics(cvg.ax,opts.CVGGraphicsName);
-            ivg = obj.IndividualFidelityGraphics();
+            ivg = obj.IndividualFidelityGraphics(Visible = opts.Visible);
             exportgraphics(ivg.ax,opts.IndividualFidelityGraphicsName);
 
             [fpath,fname,fext] = fileparts(which("IES_TM30.m"));
@@ -1039,18 +1060,19 @@ classdef IES_TM30 < handle
                 opts.FidelityGraphicsName (1,1) string = "FidelityGraphics.eps"
                 opts.IndividualFidelityGraphicsName (1,1) string = "IndividualFidelityGraphics.eps"
                 opts.ReportFileName (1,1) string = "IES_TM30Report.pdf"
+                opts.Visible (1,1) logical = false
             end
             fprintf("Creating graphics...\n");
-            spg = obj.SpectrumGraphics(RelativeScale=opts.SpectrumRelativeScale);
+            spg = obj.SpectrumGraphics(RelativeScale=opts.SpectrumRelativeScale, Visible=opts.Visible);
             exportgraphics(spg.ax,opts.SpectrumGraphicsName,'ContentType','vector');
             Rch = obj.LocalChromaHueShiftFidelityGraphics(xLabels=[false, false, true],...
-                relBarWidth=0.9*[1,1,1], mValues=[true,false,false]);
+                relBarWidth=0.9*[1,1,1], mValues=[true,false,false], Visible=opts.Visible);
             exportgraphics(Rch.axc,opts.ChromaShiftGraphicsName,'ContentType','vector');
             exportgraphics(Rch.axh,opts.HueShiftGraphicsName,'ContentType','vector');
             exportgraphics(Rch.axf,opts.FidelityGraphicsName,'ContentType','vector');
-            cvg = obj.ColorVectorGraphic(Disclaimer=false,DisclaimerTime=false);
+            cvg = obj.ColorVectorGraphic(Disclaimer=false,DisclaimerTime=false, Visible=opts.Visible);
             exportgraphics(cvg.ax,opts.CVGGraphicsName,'ContentType','vector');
-            ivg = obj.IndividualFidelityGraphics();
+            ivg = obj.IndividualFidelityGraphics(Visible=opts.Visible);
             exportgraphics(ivg.ax,opts.IndividualFidelityGraphicsName,'ContentType','vector');
 
             test = dir('IES_TM30ReportTemplate.tex');
